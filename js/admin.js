@@ -106,9 +106,13 @@ async function requestJson(url, options = {}) {
     },
     ...options,
   });
-  const data = await response.json().catch(() => ({}));
+  const contentType = response.headers.get('content-type') || '';
+  const data = contentType.includes('application/json')
+    ? await response.json().catch(() => ({}))
+    : { error: await response.text().catch(() => '') };
   if (!response.ok) {
-    throw new Error(data.error || 'Request failed');
+    const message = data.error || `Request failed (${response.status})`;
+    throw new Error(message.length > 180 ? `Request failed (${response.status})` : message);
   }
   return data;
 }

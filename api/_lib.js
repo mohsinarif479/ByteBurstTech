@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const cookie = require('cookie');
 
 const defaultProjects = [
   {
@@ -67,6 +66,25 @@ const DATA_PATHS = {
 const SESSION_COOKIE = 'devcraft_admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 
+function parseCookies(header = '') {
+  return header.split(';').reduce((cookies, part) => {
+    const [rawKey, ...rawValue] = part.trim().split('=');
+    if (!rawKey) return cookies;
+    cookies[rawKey] = decodeURIComponent(rawValue.join('=') || '');
+    return cookies;
+  }, {});
+}
+
+function serializeCookie(name, value, options = {}) {
+  const parts = [`${name}=${encodeURIComponent(value)}`];
+  if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
+  if (options.path) parts.push(`Path=${options.path}`);
+  if (options.httpOnly) parts.push('HttpOnly');
+  if (options.secure) parts.push('Secure');
+  if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
+  return parts.join('; ');
+}
+
 function sendJson(res, statusCode, data) {
   res.statusCode = statusCode;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
@@ -104,27 +122,27 @@ function createSessionCookie() {
   const expiresAt = Date.now() + SESSION_TTL_SECONDS * 1000;
   const payload = Buffer.from(JSON.stringify({ role: 'admin', expiresAt })).toString('base64url');
   const token = `${payload}.${sign(payload)}`;
-  return cookie.serialize(SESSION_COOKIE, token, {
+  return serializeCookie(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'Strict',
     path: '/',
     maxAge: SESSION_TTL_SECONDS,
   });
 }
 
 function clearSessionCookie() {
-  return cookie.serialize(SESSION_COOKIE, '', {
+  return serializeCookie(SESSION_COOKIE, '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    sameSite: 'Strict',
     path: '/',
     maxAge: 0,
   });
 }
 
 function isAuthenticated(req) {
-  const cookies = cookie.parse(req.headers.cookie || '');
+  const cookies = parseCookies(req.headers.cookie || '');
   const token = cookies[SESSION_COOKIE];
   if (!token) return false;
 
