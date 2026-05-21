@@ -77,6 +77,12 @@ const cancelEditButton = document.getElementById('cancelEditButton');
 const resetProjectsButton = document.getElementById('resetProjectsButton');
 const clearMessagesButton = document.getElementById('clearMessagesButton');
 const loginStatus = document.getElementById('loginStatus');
+const passwordForm = document.getElementById('passwordForm');
+const currentPassword = document.getElementById('currentPassword');
+const newPassword = document.getElementById('newPassword');
+const confirmPassword = document.getElementById('confirmPassword');
+const updatePasswordButton = document.getElementById('updatePasswordButton');
+const passwordStatus = document.getElementById('passwordStatus');
 const adminNavButtons = document.querySelectorAll('[data-admin-section]');
 const adminSections = document.querySelectorAll('[data-admin-panel]');
 
@@ -135,6 +141,12 @@ function showLoginStatus(message) {
   if (!loginStatus) return;
   loginStatus.textContent = message;
   loginStatus.classList.remove('hidden');
+}
+
+function showPasswordStatus(message) {
+  if (!passwordStatus) return;
+  passwordStatus.textContent = message;
+  passwordStatus.classList.remove('hidden');
 }
 
 function setActiveSection(sectionName) {
@@ -391,6 +403,35 @@ resetProjectsButton?.addEventListener('click', async () => {
 clearMessagesButton?.addEventListener('click', async () => {
   await requestJson('/api/messages', { method: 'DELETE' });
   await loadMessages();
+});
+
+passwordForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  if (newPassword.value !== confirmPassword.value) {
+    showPasswordStatus('New password and confirmation do not match.');
+    return;
+  }
+
+  updatePasswordButton.disabled = true;
+  updatePasswordButton.textContent = 'Updating...';
+
+  try {
+    await requestJson('/api/auth/password', {
+      method: 'PUT',
+      body: JSON.stringify({
+        currentPassword: currentPassword.value,
+        newPassword: newPassword.value,
+      }),
+    });
+    passwordForm.reset();
+    showPasswordStatus('Password updated successfully. Use the new password next time you log in.');
+  } catch (error) {
+    showPasswordStatus(error.message || 'Could not update password.');
+  } finally {
+    updatePasswordButton.disabled = false;
+    updatePasswordButton.textContent = 'Update Password';
+  }
 });
 
 projectForm?.addEventListener('submit', async (event) => {

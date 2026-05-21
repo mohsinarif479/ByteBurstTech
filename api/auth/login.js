@@ -1,6 +1,7 @@
 const {
   DATA_PATHS,
   createSessionCookie,
+  getAdminPasswordHash,
   hashPassword,
   readBody,
   readJsonBlob,
@@ -19,7 +20,7 @@ module.exports = async function handler(req, res) {
     }
 
     const { password } = await readBody(req);
-    const expectedHash = process.env.ADMIN_PASSWORD_HASH;
+    const expectedHash = await getAdminPasswordHash();
     if (!expectedHash) {
       return sendJson(res, 500, { error: 'Admin password is not configured' });
     }

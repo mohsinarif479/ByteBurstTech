@@ -61,6 +61,7 @@ const DATA_PATHS = {
   projects: 'data/projects.json',
   messages: 'data/messages.json',
   authAttempts: 'data/auth-attempts.json',
+  authConfig: 'data/auth-config.json',
 };
 
 const SESSION_COOKIE = 'devcraft_admin_session';
@@ -116,6 +117,19 @@ function sign(value) {
 
 function hashPassword(value) {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+async function getAdminPasswordHash() {
+  try {
+    const config = await readJsonBlob(DATA_PATHS.authConfig, {});
+    if (config && typeof config.passwordHash === 'string' && config.passwordHash) {
+      return config.passwordHash;
+    }
+  } catch (error) {
+    // Fall back to the deployment environment value if Blob is temporarily unavailable.
+  }
+
+  return process.env.ADMIN_PASSWORD_HASH || '';
 }
 
 function createSessionCookie() {
@@ -202,6 +216,7 @@ module.exports = {
   clearSessionCookie,
   createSessionCookie,
   defaultProjects,
+  getAdminPasswordHash,
   hashPassword,
   isAuthenticated,
   normalizeProject,

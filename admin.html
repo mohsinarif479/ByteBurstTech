@@ -162,11 +162,32 @@
               </div>
               <div class="security-panel">
                 <span>Required Vercel environment variables</span>
-                <p>Set ADMIN_PASSWORD_HASH, ADMIN_SESSION_SECRET, and BLOB_READ_WRITE_TOKEN in Vercel before deployment.</p>
+                <p>Set ADMIN_PASSWORD_HASH, ADMIN_SESSION_SECRET, BLOB_READ_WRITE_TOKEN, RESEND_API_KEY, CONTACT_TO_EMAIL, and CONTACT_FROM_EMAIL in Vercel before deployment.</p>
               </div>
+              <form id="passwordForm" class="project-form">
+                <h3>Update admin password</h3>
+                <label>
+                  Current password
+                  <input type="password" id="currentPassword" autocomplete="current-password" required />
+                </label>
+                <label>
+                  New password
+                  <input type="password" id="newPassword" autocomplete="new-password" minlength="10" required />
+                </label>
+                <label>
+                  Confirm new password
+                  <input type="password" id="confirmPassword" autocomplete="new-password" minlength="10" required />
+                </label>
+                <button type="submit" class="button button-primary" id="updatePasswordButton">Update Password</button>
+                <p class="hint hidden" id="passwordStatus" role="status"></p>
+              </form>
               <div class="security-panel">
                 <span>Storage</span>
-                <p>Projects, messages, and uploaded images are managed through Vercel Functions and Vercel Blob.</p>
+                <p>Projects, messages, uploaded images, and admin password updates are managed through Vercel Functions and private Vercel Blob records.</p>
+              </div>
+              <div class="security-panel">
+                <span>Email notifications</span>
+                <p>Contact form submissions are saved to the admin inbox and can also send a notification to your Gmail through Resend.</p>
               </div>
             </section>
           </div>
