@@ -95,7 +95,10 @@ contactForm?.addEventListener('submit', async (event) => {
     });
     const data = await response.json().catch(() => ({}));
 
-    if (!response.ok) throw new Error(data.error || 'Message could not be sent');
+    if (!response.ok) {
+      const detail = data.detail ? ` (${data.detail})` : '';
+      throw new Error(`${data.error || 'Message could not be sent'}${detail}`);
+    }
 
     contactForm.reset();
     selectedAttachments = [];
