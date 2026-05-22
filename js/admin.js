@@ -84,12 +84,21 @@ const newPassword = document.getElementById('newPassword');
 const confirmPassword = document.getElementById('confirmPassword');
 const updatePasswordButton = document.getElementById('updatePasswordButton');
 const passwordStatus = document.getElementById('passwordStatus');
+const brandForm = document.getElementById('brandForm');
+const companyName = document.getElementById('companyName');
+const logoText = document.getElementById('logoText');
+const logoUrl = document.getElementById('logoUrl');
+const logoFile = document.getElementById('logoFile');
+const brandPreview = document.getElementById('brandPreview');
+const saveBrandButton = document.getElementById('saveBrandButton');
+const brandStatus = document.getElementById('brandStatus');
 const adminNavButtons = document.querySelectorAll('[data-admin-section]');
 const adminSections = document.querySelectorAll('[data-admin-panel]');
 
 const MAX_IMAGE_BYTES = 1024 * 1024;
 let projects = [];
 let selectedImages = [];
+let selectedLogo = null;
 
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>"']/g, (character) => {
@@ -150,6 +159,12 @@ function showPasswordStatus(message) {
   passwordStatus.classList.remove('hidden');
 }
 
+function showBrandStatus(message) {
+  if (!brandStatus) return;
+  brandStatus.textContent = message;
+  brandStatus.classList.remove('hidden');
+}
+
 function setActiveSection(sectionName) {
   adminSections.forEach((section) => {
     section.classList.toggle('hidden', section.dataset.adminPanel !== sectionName);
@@ -168,6 +183,39 @@ async function loadProjects() {
     if (adminPortfolioList) {
       adminPortfolioList.innerHTML = `<p class="note form-error">Projects could not load: ${escapeHtml(error.message || 'Request failed')}</p>`;
     }
+  }
+}
+
+function renderBrandPreview(settings = {}) {
+  if (!brandPreview) return;
+
+  const previewUrl = selectedLogo?.preview || settings.logoUrl || logoUrl?.value || '';
+  const previewName = companyName?.value || settings.companyName || 'DevCraft Studio';
+  const previewText = logoText?.value || previewName.charAt(0) || 'D';
+
+  brandPreview.innerHTML = `
+    <div class="brand-preview-card">
+      <span class="brand-mark">
+        ${previewUrl ? `<img src="${escapeHtml(previewUrl.startsWith('blob:') ? previewUrl : '/api/logo')}" alt="" />` : escapeHtml(previewText)}
+      </span>
+      <strong>${escapeHtml(previewName)}</strong>
+    </div>`;
+}
+
+async function loadBrandSettings() {
+  if (!brandForm) return;
+
+  try {
+    const data = await requestJson('/api/settings');
+    const settings = data.settings || {};
+    companyName.value = settings.companyName || 'DevCraft Studio';
+    logoText.value = settings.logoText || (companyName.value.charAt(0) || 'D');
+    logoUrl.value = settings.logoUrl || '';
+    selectedLogo = null;
+    renderBrandPreview(settings);
+    if (typeof applySiteSettings === 'function') applySiteSettings(settings);
+  } catch (error) {
+    showBrandStatus(error.message || 'Brand settings could not load.');
   }
 }
 
@@ -387,7 +435,7 @@ async function showDashboard() {
   dashboardPanel.classList.remove('hidden');
   setActiveSection('overview');
   renderImagePreview();
-  await Promise.allSettled([loadProjects(), loadMessages()]);
+  await Promise.allSettled([loadBrandSettings(), loadProjects(), loadMessages()]);
 }
 
 function showLogin() {
@@ -443,6 +491,32 @@ projectImages?.addEventListener('change', async () => {
   }
 });
 
+logoFile?.addEventListener('change', async () => {
+  const file = logoFile.files?.[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/') || file.size > MAX_IMAGE_BYTES) {
+    showBrandStatus('Logo must be an image smaller than 1 MB.');
+    logoFile.value = '';
+    return;
+  }
+
+  selectedLogo = {
+    name: file.name,
+    data: await readFileAsDataUrl(file),
+    preview: URL.createObjectURL(file),
+  };
+  renderBrandPreview();
+  logoFile.value = '';
+});
+
+companyName?.addEventListener('input', () => renderBrandPreview());
+logoText?.addEventListener('input', () => renderBrandPreview());
+logoUrl?.addEventListener('input', () => {
+  selectedLogo = null;
+  renderBrandPreview();
+});
+
 resetProjectsButton?.addEventListener('click', async () => {
   await saveProjects(defaultProjects);
   resetProjectForm();
@@ -468,6 +542,39 @@ refreshMessagesButton?.addEventListener('click', async () => {
     await loadMessages();
   } finally {
     refreshMessagesButton.disabled = false;
+  }
+});
+
+brandForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  saveBrandButton.disabled = true;
+  saveBrandButton.textContent = 'Saving...';
+
+  try {
+    const data = await requestJson('/api/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        companyName: companyName.value.trim(),
+        logoText: logoText.value.trim(),
+        logoUrl: logoUrl.value.trim(),
+        logoFile: selectedLogo ? {
+          name: selectedLogo.name,
+          data: selectedLogo.data,
+        } : null,
+      }),
+    });
+
+    selectedLogo = null;
+    logoUrl.value = data.settings.logoUrl || '';
+    renderBrandPreview(data.settings);
+    if (typeof applySiteSettings === 'function') applySiteSettings(data.settings);
+    showBrandStatus('Brand updated successfully across the website.');
+  } catch (error) {
+    showBrandStatus(error.message || 'Brand settings could not be saved.');
+  } finally {
+    saveBrandButton.disabled = false;
+    saveBrandButton.textContent = 'Save Brand';
   }
 });
 

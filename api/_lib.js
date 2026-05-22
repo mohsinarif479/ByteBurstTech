@@ -62,6 +62,13 @@ const DATA_PATHS = {
   messages: 'data/messages.json',
   authAttempts: 'data/auth-attempts.json',
   authConfig: 'data/auth-config.json',
+  settings: 'data/site-settings.json',
+};
+
+const defaultSettings = {
+  companyName: 'DevCraft Studio',
+  logoText: 'D',
+  logoUrl: '',
 };
 
 const SESSION_COOKIE = 'devcraft_admin_session';
@@ -222,6 +229,7 @@ module.exports = {
   clearSessionCookie,
   createSessionCookie,
   defaultProjects,
+  defaultSettings,
   getAdminPasswordHash,
   hashPassword,
   isAuthenticated,

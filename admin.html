@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#07111f" />
   <title>Admin Portal | DevCraft Studio</title>
   <link rel="stylesheet" href="css/styles.css" />
+  <script defer src="js/site-settings.js"></script>
   <script defer src="js/nav-active.js"></script>
   <script defer src="js/admin.js"></script>
 </head>
@@ -14,8 +15,8 @@
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="index.html">
-        <span class="brand-mark">D</span>
-        <span>DevCraft Studio</span>
+        <span class="brand-mark" data-brand-mark>D</span>
+        <span data-brand-name>DevCraft Studio</span>
       </a>
       <nav class="main-nav" aria-label="Main navigation">
         <a href="index.html">Home</a>
@@ -57,6 +58,7 @@
             </div>
             <nav class="admin-side-nav" aria-label="Admin sections">
               <button type="button" data-admin-section="overview" class="active">Overview</button>
+              <button type="button" data-admin-section="brand">Brand</button>
               <button type="button" data-admin-section="projects">Projects</button>
               <button type="button" data-admin-section="messages">Messages</button>
               <button type="button" data-admin-section="security">Security</button>
@@ -88,7 +90,44 @@
                   <strong>Blob uploads</strong>
                   <p>Upload multiple project images and attach them to galleries.</p>
                 </article>
+                <article>
+                  <span>Brand</span>
+                  <strong>Site identity</strong>
+                  <p>Update the company name, logo text, and logo image shown across the website.</p>
+                </article>
               </div>
+            </section>
+
+            <section data-admin-panel="brand" class="hidden">
+              <div class="dashboard-header">
+                <div>
+                  <span class="eyebrow">Brand</span>
+                  <h2>Company identity</h2>
+                </div>
+              </div>
+              <form id="brandForm" class="project-form">
+                <label>
+                  Company name
+                  <input type="text" id="companyName" placeholder="DevCraft Studio" required />
+                </label>
+                <label>
+                  Logo text
+                  <input type="text" id="logoText" maxlength="3" placeholder="D" />
+                </label>
+                <label>
+                  Logo image URL
+                  <input type="text" id="logoUrl" placeholder="Optional logo URL" />
+                </label>
+                <label class="file-dropzone" for="logoFile">
+                  <span>Browse logo image</span>
+                  <strong>Choose a logo</strong>
+                  <small>PNG, JPG, WEBP, SVG. Max 1 MB. Replaces logo text when set.</small>
+                  <input type="file" id="logoFile" accept="image/*" />
+                </label>
+                <div class="upload-preview" id="brandPreview"></div>
+                <button type="submit" class="button button-primary" id="saveBrandButton">Save Brand</button>
+                <p class="hint hidden" id="brandStatus" role="status"></p>
+              </form>
             </section>
 
             <section data-admin-panel="projects" class="hidden">
@@ -201,7 +240,7 @@
 
   <footer class="site-footer">
     <div class="container footer-grid">
-      <p>&copy; 2026 DevCraft Studio.</p>
+      <p data-brand-footer="&copy; 2026 {company}.">&copy; 2026 DevCraft Studio.</p>
       <nav class="footer-links" aria-label="Footer navigation">
         <a href="privacy.html">Privacy Policy</a>
         <a href="terms.html">Terms of Service</a>
@@ -210,3 +249,4 @@
   </footer>
 </body>
 </html>
+

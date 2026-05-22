@@ -7,14 +7,15 @@
   <meta name="theme-color" content="#07111f" />
   <title>About Mohsin Arif | DevCraft Studio</title>
   <link rel="stylesheet" href="css/styles.css" />
+  <script defer src="js/site-settings.js"></script>
   <script defer src="js/nav-active.js"></script>
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
       <a class="brand" href="index.html">
-        <span class="brand-mark">D</span>
-        <span>DevCraft Studio</span>
+        <span class="brand-mark" data-brand-mark>D</span>
+        <span data-brand-name>DevCraft Studio</span>
       </a>
       <nav class="main-nav" aria-label="Main navigation">
         <a href="index.html">Home</a>
@@ -26,7 +27,7 @@
       </nav>
     </div>
   </header>
- 
+
   <main>
     <section class="page-hero about-hero">
       <div class="container about-hero-grid">
@@ -172,7 +173,7 @@
 
   <footer class="site-footer">
     <div class="container footer-grid">
-      <p>&copy; 2026 DevCraft Studio. Web development and custom software services.</p>
+      <p data-brand-footer="&copy; 2026 {company}. Web development and custom software services.">&copy; 2026 DevCraft Studio. Web development and custom software services.</p>
       <nav class="footer-links" aria-label="Footer navigation">
         <a href="privacy.html">Privacy Policy</a>
         <a href="terms.html">Terms of Service</a>
@@ -181,3 +182,4 @@
   </footer>
 </body>
 </html>
+
