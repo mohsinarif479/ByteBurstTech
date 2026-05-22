@@ -10,7 +10,7 @@ module.exports = async function handler(req, res) {
     const { put, list } = await import('@vercel/blob');
     const testPath = `health/blob-${Date.now()}.json`;
     await put(testPath, JSON.stringify({ ok: true, at: new Date().toISOString() }), {
-      access: 'public',
+      access: 'private',
       contentType: 'application/json; charset=utf-8',
     });
     const result = await list({ prefix: 'health/', limit: 1 });

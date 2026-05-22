@@ -316,14 +316,15 @@ function renderMessages(messages) {
             <div class="message-attachment-grid">
               ${attachments.map((file) => {
                 const url = escapeHtml(file.url);
+                const secureUrl = `/api/blob-file?url=${encodeURIComponent(file.url || '')}`;
                 const fileName = escapeHtml(file.name || 'Attachment');
                 const fileType = escapeHtml(file.type || 'File');
                 const size = file.size ? `${Math.ceil(Number(file.size) / 1024)} KB` : fileType;
                 const preview = String(file.type || '').startsWith('image/')
-                  ? `<img src="${url}" alt="${fileName}" loading="lazy" />`
+                  ? `<img src="${secureUrl}" alt="${fileName}" loading="lazy" />`
                   : `<span class="message-file-icon">FILE</span>`;
                 return `
-                  <a href="${url}" target="_blank" rel="noreferrer" class="message-attachment">
+                  <a href="${secureUrl}" target="_blank" rel="noreferrer" class="message-attachment">
                     ${preview}
                     <span>${fileName}</span>
                     <small>${escapeHtml(size)}</small>

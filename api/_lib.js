@@ -197,7 +197,12 @@ async function readJsonBlob(path, fallback) {
 
   if (!blob) return fallback;
 
-  const response = await fetch(blob.downloadUrl || blob.url, { cache: 'no-store' });
+  const response = await fetch(blob.downloadUrl || blob.url, {
+    cache: 'no-store',
+    headers: {
+      Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+    },
+  });
   if (!response.ok) return fallback;
   return response.json();
 }
@@ -205,7 +210,7 @@ async function readJsonBlob(path, fallback) {
 async function writeJsonBlob(path, data) {
   const { put } = await blobSdk();
   return put(path, JSON.stringify(data, null, 2), {
-    access: 'public',
+    access: 'private',
     contentType: 'application/json; charset=utf-8',
     addRandomSuffix: false,
     allowOverwrite: true,

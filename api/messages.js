@@ -65,7 +65,7 @@ async function uploadMessageAttachments(files = [], messageId) {
     const safeName = originalName.replace(/[^a-z0-9._-]/gi, '-');
     const pathname = `message-attachments/${messageId}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
     const blob = await put(pathname, parsed.buffer, {
-      access: 'public',
+      access: 'private',
       contentType: parsed.type,
     });
 
@@ -74,6 +74,7 @@ async function uploadMessageAttachments(files = [], messageId) {
       type: parsed.type,
       size: parsed.buffer.length,
       url: blob.url,
+      pathname: blob.pathname || pathname,
     });
   }
 
@@ -87,7 +88,12 @@ async function readMessages() {
 
   for (const blob of result.blobs || []) {
     if (!blob.pathname.endsWith('.json')) continue;
-    const response = await fetch(blob.downloadUrl || blob.url, { cache: 'no-store' });
+    const response = await fetch(blob.downloadUrl || blob.url, {
+      cache: 'no-store',
+      headers: {
+        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+      },
+    });
     if (!response.ok) continue;
     const message = await response.json().catch(() => null);
     if (message) messages.push(message);
@@ -100,7 +106,7 @@ async function readMessages() {
 async function saveMessage(message) {
   const { put } = await import('@vercel/blob');
   return put(`${MESSAGE_PREFIX}${message.id}.json`, JSON.stringify(message, null, 2), {
-    access: 'public',
+    access: 'private',
     contentType: 'application/json; charset=utf-8',
   });
 }

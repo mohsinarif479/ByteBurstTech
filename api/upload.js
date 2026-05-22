@@ -34,7 +34,7 @@ module.exports = async function handler(req, res) {
     const safeName = String(file.name || `project.${extension}`).replace(/[^a-z0-9._-]/gi, '-');
     const pathname = `uploads/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
     const blob = await put(pathname, parsed.buffer, {
-      access: 'public',
+      access: 'private',
       contentType: parsed.type,
     });
     uploaded.push(blob.url);
