@@ -90,6 +90,17 @@ function normalizeProject(item, index = 0) {
   };
 }
 
+function projectGallery(item) {
+  const imageUrl = item.imageUrl || 'images/project-default.svg';
+  return Array.isArray(item.images) && item.images.length ? item.images : [imageUrl];
+}
+
+function mediaUrl(url = '') {
+  return String(url).includes('.blob.vercel-storage.com/')
+    ? `/api/media?url=${encodeURIComponent(url)}`
+    : url;
+}
+
 async function getPortfolioItems() {
   try {
     const response = await fetch('/api/projects', { cache: 'no-store' });
@@ -115,10 +126,10 @@ async function renderSliderTrack(trackId) {
       const bannerTitle = escapeHtml(item.bannerTitle || item.title);
       const bannerText = escapeHtml(item.bannerText || item.description);
       const bannerIcon = escapeHtml(item.bannerIcon || 'New');
-      const imageUrl = escapeHtml(item.imageUrl || 'images/project-default.svg');
+      const imageUrl = escapeHtml(mediaUrl(item.imageUrl || 'images/project-default.svg'));
       const gallery = Array.isArray(item.images) && item.images.length ? item.images : [item.imageUrl || 'images/project-default.svg'];
       const galleryImages = gallery.slice(1, 4).map((image, index) => {
-        const safeImage = escapeHtml(image);
+        const safeImage = escapeHtml(mediaUrl(image));
         return `<img src="${safeImage}" alt="${title} gallery image ${index + 2}" loading="lazy" />`;
       }).join('');
       const description = escapeHtml(item.description);
@@ -154,18 +165,18 @@ async function renderPortfolioCards() {
 
   const items = await getPortfolioItems();
   list.innerHTML = items
-    .map((item) => {
+    .map((item, index) => {
       const title = escapeHtml(item.title);
-      const imageUrl = escapeHtml(item.imageUrl || 'images/project-default.svg');
-      const gallery = Array.isArray(item.images) && item.images.length ? item.images : [item.imageUrl || 'images/project-default.svg'];
+      const imageUrl = escapeHtml(mediaUrl(item.imageUrl || 'images/project-default.svg'));
+      const gallery = projectGallery(item);
       const galleryImages = gallery.slice(1, 4).map((image, index) => {
-        const safeImage = escapeHtml(image);
+        const safeImage = escapeHtml(mediaUrl(image));
         return `<img src="${safeImage}" alt="${title} gallery image ${index + 2}" loading="lazy" />`;
       }).join('');
       const description = escapeHtml(item.description);
 
       return `
-        <article class="portfolio-card">
+        <article class="portfolio-card portfolio-card-clickable" tabindex="0" role="button" data-project-index="${index}" aria-label="Open ${title} project gallery">
           <div class="portfolio-media">
             <img class="portfolio-image" src="${imageUrl}" alt="${title}" loading="lazy" />
             ${galleryImages ? `<div class="portfolio-gallery">${galleryImages}</div>` : ''}
@@ -174,10 +185,90 @@ async function renderPortfolioCards() {
             <span class="card-label">Mohsin project</span>
             <h3>${title}</h3>
             <p>${description}</p>
+            <span class="project-open-hint">View project gallery</span>
           </div>
         </article>`;
     })
     .join('');
+
+  setupProjectDetail(items);
+}
+
+function setupProjectDetail(items) {
+  const list = document.getElementById('portfolioList');
+  const detail = document.getElementById('projectDetail');
+  const titleElement = document.getElementById('projectDetailTitle');
+  const descriptionElement = document.getElementById('projectDetailDescription');
+  const track = document.getElementById('projectDetailTrack');
+  const dots = document.getElementById('projectDetailDots');
+  const previousButton = document.getElementById('projectDetailPrev');
+  const nextButton = document.getElementById('projectDetailNext');
+  const closeButton = document.getElementById('closeProjectDetail');
+  if (!list || !detail || !titleElement || !descriptionElement || !track || !dots) return;
+
+  let activeImage = 0;
+  let activeProject = 0;
+
+  function updateImage(index) {
+    const slides = Array.from(track.children);
+    if (!slides.length) return;
+    activeImage = (index + slides.length) % slides.length;
+    track.style.transform = `translateX(-${activeImage * 100}%)`;
+    Array.from(dots.children).forEach((dot, dotIndex) => {
+      dot.classList.toggle('active', dotIndex === activeImage);
+      dot.setAttribute('aria-pressed', String(dotIndex === activeImage));
+    });
+  }
+
+  function openProject(index) {
+    const item = items[index];
+    if (!item) return;
+
+    activeProject = index;
+    activeImage = 0;
+    const title = escapeHtml(item.title);
+    const gallery = projectGallery(item);
+    titleElement.textContent = item.title;
+    descriptionElement.textContent = item.description || item.bannerText || '';
+    track.innerHTML = gallery.map((image, imageIndex) => `
+      <figure class="project-detail-slide">
+        <img src="${escapeHtml(mediaUrl(image))}" alt="${title} image ${imageIndex + 1}" loading="lazy" />
+      </figure>`).join('');
+    dots.innerHTML = gallery.map((_, imageIndex) => `
+      <button type="button" class="slider-dot" aria-label="Show image ${imageIndex + 1}" aria-pressed="false"></button>`).join('');
+    Array.from(dots.children).forEach((dot, imageIndex) => {
+      dot.addEventListener('click', () => updateImage(imageIndex));
+    });
+
+    Array.from(list.querySelectorAll('.portfolio-card')).forEach((card, cardIndex) => {
+      card.classList.toggle('active', cardIndex === activeProject);
+    });
+
+    previousButton.hidden = gallery.length <= 1;
+    nextButton.hidden = gallery.length <= 1;
+    dots.hidden = gallery.length <= 1;
+    detail.classList.remove('hidden');
+    updateImage(0);
+    detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  list.querySelectorAll('[data-project-index]').forEach((card) => {
+    const index = Number(card.dataset.projectIndex);
+    card.addEventListener('click', () => openProject(index));
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openProject(index);
+      }
+    });
+  });
+
+  previousButton?.addEventListener('click', () => updateImage(activeImage - 1));
+  nextButton?.addEventListener('click', () => updateImage(activeImage + 1));
+  closeButton?.addEventListener('click', () => {
+    detail.classList.add('hidden');
+    Array.from(list.querySelectorAll('.portfolio-card')).forEach((card) => card.classList.remove('active'));
+  });
 }
 
 function initSlider(sliderId, trackId, dotsId, autoRotate = false) {
