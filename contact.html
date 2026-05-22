@@ -59,6 +59,15 @@
             Project details
             <textarea name="message" rows="6" placeholder="Tell me about your project, timeline, and goals" required></textarea>
           </label>
+          <label class="file-dropzone" for="contactAttachments">
+            <span>Optional attachment</span>
+            <strong>Add files for review</strong>
+            <small>Upload up to 3 files. Images, PDF, DOC, DOCX, TXT, ZIP. Max 1 MB each.</small>
+            <input type="file" id="contactAttachments" name="attachments" accept="image/*,.pdf,.doc,.docx,.txt,.zip" multiple />
+          </label>
+          <div class="upload-preview contact-attachment-preview" id="contactAttachmentPreview">
+            <p class="note">No files attached.</p>
+          </div>
           <button type="submit" class="button button-primary">Send Message</button>
           <p class="note">Your message is sent securely to the admin inbox.</p>
           <p class="note hidden" id="formStatus" role="status"></p>

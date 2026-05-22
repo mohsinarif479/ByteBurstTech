@@ -75,6 +75,7 @@ const adminMessageList = document.getElementById('adminMessageList');
 const saveProjectButton = document.getElementById('saveProjectButton');
 const cancelEditButton = document.getElementById('cancelEditButton');
 const resetProjectsButton = document.getElementById('resetProjectsButton');
+const refreshMessagesButton = document.getElementById('refreshMessagesButton');
 const clearMessagesButton = document.getElementById('clearMessagesButton');
 const loginStatus = document.getElementById('loginStatus');
 const passwordForm = document.getElementById('passwordForm');
@@ -159,9 +160,15 @@ function setActiveSection(sectionName) {
 }
 
 async function loadProjects() {
-  const data = await requestJson('/api/projects');
-  projects = Array.isArray(data.projects) ? data.projects.map(normalizeProject) : [];
-  renderAdminItems();
+  try {
+    const data = await requestJson('/api/projects');
+    projects = Array.isArray(data.projects) ? data.projects.map(normalizeProject) : [];
+    renderAdminItems();
+  } catch (error) {
+    if (adminPortfolioList) {
+      adminPortfolioList.innerHTML = `<p class="note form-error">Projects could not load: ${escapeHtml(error.message || 'Request failed')}</p>`;
+    }
+  }
 }
 
 async function saveProjects(nextProjects) {
@@ -174,8 +181,18 @@ async function saveProjects(nextProjects) {
 }
 
 async function loadMessages() {
-  const data = await requestJson('/api/messages');
-  renderMessages(Array.isArray(data.messages) ? data.messages : []);
+  if (adminMessageList) {
+    adminMessageList.innerHTML = '<p class="note">Loading client messages...</p>';
+  }
+
+  try {
+    const data = await requestJson('/api/messages');
+    renderMessages(Array.isArray(data.messages) ? data.messages : []);
+  } catch (error) {
+    if (adminMessageList) {
+      adminMessageList.innerHTML = `<p class="note form-error">Messages could not load: ${escapeHtml(error.message || 'Request failed')}</p>`;
+    }
+  }
 }
 
 function renderImagePreview() {
@@ -291,6 +308,30 @@ function renderMessages(messages) {
       const body = escapeHtml(message.message);
       const createdAt = message.createdAt ? new Date(message.createdAt).toLocaleString() : 'Unknown date';
       const id = escapeHtml(message.id);
+      const attachments = Array.isArray(message.attachments) ? message.attachments : [];
+      const attachmentMarkup = attachments.length
+        ? `
+          <div class="message-attachments">
+            <strong>Attachments</strong>
+            <div class="message-attachment-grid">
+              ${attachments.map((file) => {
+                const url = escapeHtml(file.url);
+                const fileName = escapeHtml(file.name || 'Attachment');
+                const fileType = escapeHtml(file.type || 'File');
+                const size = file.size ? `${Math.ceil(Number(file.size) / 1024)} KB` : fileType;
+                const preview = String(file.type || '').startsWith('image/')
+                  ? `<img src="${url}" alt="${fileName}" loading="lazy" />`
+                  : `<span class="message-file-icon">FILE</span>`;
+                return `
+                  <a href="${url}" target="_blank" rel="noreferrer" class="message-attachment">
+                    ${preview}
+                    <span>${fileName}</span>
+                    <small>${escapeHtml(size)}</small>
+                  </a>`;
+              }).join('')}
+            </div>
+          </div>`
+        : '';
 
       return `
         <article class="message-item">
@@ -299,6 +340,7 @@ function renderMessages(messages) {
             <h3>${name}</h3>
             <a href="mailto:${email}">${email}</a>
             <p>${body}</p>
+            ${attachmentMarkup}
           </div>
           <button type="button" data-id="${id}" class="deleteMessage">Delete</button>
         </article>`;
@@ -344,7 +386,7 @@ async function showDashboard() {
   dashboardPanel.classList.remove('hidden');
   setActiveSection('overview');
   renderImagePreview();
-  await Promise.all([loadProjects(), loadMessages()]);
+  await Promise.allSettled([loadProjects(), loadMessages()]);
 }
 
 function showLogin() {
@@ -372,7 +414,12 @@ logoutButton?.addEventListener('click', async () => {
 });
 
 adminNavButtons.forEach((button) => {
-  button.addEventListener('click', () => setActiveSection(button.dataset.adminSection));
+  button.addEventListener('click', () => {
+    setActiveSection(button.dataset.adminSection);
+    if (button.dataset.adminSection === 'messages') {
+      loadMessages();
+    }
+  });
 });
 
 cancelEditButton?.addEventListener('click', resetProjectForm);
@@ -401,8 +448,26 @@ resetProjectsButton?.addEventListener('click', async () => {
 });
 
 clearMessagesButton?.addEventListener('click', async () => {
-  await requestJson('/api/messages', { method: 'DELETE' });
-  await loadMessages();
+  clearMessagesButton.disabled = true;
+  try {
+    await requestJson('/api/messages', { method: 'DELETE' });
+    await loadMessages();
+  } catch (error) {
+    if (adminMessageList) {
+      adminMessageList.innerHTML = `<p class="note form-error">Messages could not be cleared: ${escapeHtml(error.message || 'Request failed')}</p>`;
+    }
+  } finally {
+    clearMessagesButton.disabled = false;
+  }
+});
+
+refreshMessagesButton?.addEventListener('click', async () => {
+  refreshMessagesButton.disabled = true;
+  try {
+    await loadMessages();
+  } finally {
+    refreshMessagesButton.disabled = false;
+  }
 });
 
 passwordForm?.addEventListener('submit', async (event) => {
