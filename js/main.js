@@ -95,6 +95,10 @@ function projectGallery(item) {
   return Array.isArray(item.images) && item.images.length ? item.images : [imageUrl];
 }
 
+function galleryImageUrl(gallery, index = 0) {
+  return mediaUrl(gallery[index] || gallery[0] || 'images/project-default.svg');
+}
+
 function mediaUrl(url = '') {
   return String(url).includes('.blob.vercel-storage.com/')
     ? `/api/media?url=${encodeURIComponent(url)}`
@@ -169,6 +173,7 @@ async function renderPortfolioCards() {
       const title = escapeHtml(item.title);
       const imageUrl = escapeHtml(mediaUrl(item.imageUrl || 'images/project-default.svg'));
       const gallery = projectGallery(item);
+      const imageCount = gallery.length;
       const galleryImages = gallery.slice(1, 4).map((image, index) => {
         const safeImage = escapeHtml(mediaUrl(image));
         return `<img src="${safeImage}" alt="${title} gallery image ${index + 2}" loading="lazy" />`;
@@ -177,9 +182,10 @@ async function renderPortfolioCards() {
 
       return `
         <article class="portfolio-card portfolio-card-clickable" tabindex="0" role="button" data-project-index="${index}" aria-label="Open ${title} project gallery">
-          <div class="portfolio-media">
+          <div class="portfolio-media" data-gallery-count="${imageCount}">
             <img class="portfolio-image" src="${imageUrl}" alt="${title}" loading="lazy" />
             ${galleryImages ? `<div class="portfolio-gallery">${galleryImages}</div>` : ''}
+            ${imageCount > 1 ? `<span class="portfolio-image-count">${imageCount} images</span>` : ''}
           </div>
           <div class="portfolio-card-copy">
             <span class="card-label">Mohsin project</span>
@@ -191,7 +197,52 @@ async function renderPortfolioCards() {
     })
     .join('');
 
+  setupPortfolioImageHover(list, items);
   setupProjectDetail(items);
+}
+
+function setupPortfolioImageHover(list, items) {
+  const timers = new WeakMap();
+
+  function stopCycle(card) {
+    const timerId = timers.get(card);
+    if (timerId) window.clearInterval(timerId);
+    timers.delete(card);
+
+    const image = card.querySelector('.portfolio-image');
+    const project = items[Number(card.dataset.projectIndex)];
+    const gallery = projectGallery(project || {});
+    if (image && gallery.length) {
+      image.src = galleryImageUrl(gallery, 0);
+      image.alt = `${project?.title || 'Project'} image 1`;
+    }
+    card.classList.remove('is-cycling-images');
+  }
+
+  function startCycle(card) {
+    const project = items[Number(card.dataset.projectIndex)];
+    const gallery = projectGallery(project || {});
+    const image = card.querySelector('.portfolio-image');
+    if (!image || gallery.length <= 1 || timers.has(card)) return;
+
+    let activeIndex = 0;
+    card.classList.add('is-cycling-images');
+    const rotate = () => {
+      activeIndex = (activeIndex + 1) % gallery.length;
+      image.src = galleryImageUrl(gallery, activeIndex);
+      image.alt = `${project?.title || 'Project'} image ${activeIndex + 1}`;
+    };
+
+    rotate();
+    timers.set(card, window.setInterval(rotate, 1100));
+  }
+
+  list.querySelectorAll('[data-project-index]').forEach((card) => {
+    card.addEventListener('mouseenter', () => startCycle(card));
+    card.addEventListener('mouseleave', () => stopCycle(card));
+    card.addEventListener('focusin', () => startCycle(card));
+    card.addEventListener('focusout', () => stopCycle(card));
+  });
 }
 
 function setupProjectDetail(items) {
