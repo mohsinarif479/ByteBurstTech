@@ -202,10 +202,10 @@ async function readJsonBlob(path, fallback) {
   return response.json();
 }
 
-async function writeJsonBlob(path, data, access = 'private') {
+async function writeJsonBlob(path, data) {
   const { put } = await blobSdk();
   return put(path, JSON.stringify(data, null, 2), {
-    access,
+    access: 'public',
     allowOverwrite: true,
     contentType: 'application/json; charset=utf-8',
   });
