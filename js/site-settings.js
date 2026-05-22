@@ -4,6 +4,29 @@ const defaultSiteSettings = {
   logoUrl: '',
 };
 
+const siteSettingsCacheKey = 'devcraft-site-settings';
+
+function markSiteSettingsReady() {
+  document.body?.classList.add('site-settings-ready');
+}
+
+function readCachedSiteSettings() {
+  try {
+    const cached = localStorage.getItem(siteSettingsCacheKey);
+    return cached ? JSON.parse(cached) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function cacheSiteSettings(settings) {
+  try {
+    localStorage.setItem(siteSettingsCacheKey, JSON.stringify(settings));
+  } catch (error) {
+    // Storage can be unavailable in private browsing; the fetched settings still apply.
+  }
+}
+
 function applySiteSettings(settings = defaultSiteSettings) {
   const companyName = settings.companyName || defaultSiteSettings.companyName;
   const logoText = settings.logoText || companyName.charAt(0) || defaultSiteSettings.logoText;
@@ -30,15 +53,25 @@ function applySiteSettings(settings = defaultSiteSettings) {
       element.classList.remove('brand-mark-image');
     }
   });
+
+  markSiteSettingsReady();
 }
 
 async function loadSiteSettings() {
+  const cachedSettings = readCachedSiteSettings();
+  if (cachedSettings) applySiteSettings(cachedSettings);
+
   try {
     const response = await fetch('/api/settings', { cache: 'no-store' });
     const data = await response.json();
-    if (response.ok) applySiteSettings(data.settings);
+    if (response.ok) {
+      applySiteSettings(data.settings);
+      cacheSiteSettings(data.settings);
+    } else if (!cachedSettings) {
+      applySiteSettings(defaultSiteSettings);
+    }
   } catch (error) {
-    applySiteSettings(defaultSiteSettings);
+    if (!cachedSettings) applySiteSettings(defaultSiteSettings);
   }
 }
 
