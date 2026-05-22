@@ -206,8 +206,9 @@ async function writeJsonBlob(path, data) {
   const { put } = await blobSdk();
   return put(path, JSON.stringify(data, null, 2), {
     access: 'public',
-    allowOverwrite: true,
     contentType: 'application/json; charset=utf-8',
+    addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 

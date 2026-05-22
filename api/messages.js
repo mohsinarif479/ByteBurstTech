@@ -1,10 +1,7 @@
 const {
-  DATA_PATHS,
   readBody,
-  readJsonBlob,
   requireAdmin,
   sendJson,
-  writeJsonBlob,
 } = require('./_lib');
 const crypto = require('crypto');
 
@@ -17,6 +14,7 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
 ]);
 const MAX_ATTACHMENT_BYTES = 1024 * 1024;
 const MAX_ATTACHMENTS = 3;
+const MESSAGE_PREFIX = 'data/messages/';
 
 function parseDataUrl(dataUrl) {
   const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl || '');
@@ -82,6 +80,43 @@ async function uploadMessageAttachments(files = [], messageId) {
   return uploaded;
 }
 
+async function readMessages() {
+  const { list } = await import('@vercel/blob');
+  const result = await list({ prefix: MESSAGE_PREFIX, limit: 100 });
+  const messages = [];
+
+  for (const blob of result.blobs || []) {
+    if (!blob.pathname.endsWith('.json')) continue;
+    const response = await fetch(blob.downloadUrl || blob.url, { cache: 'no-store' });
+    if (!response.ok) continue;
+    const message = await response.json().catch(() => null);
+    if (message) messages.push(message);
+  }
+
+  messages.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return messages;
+}
+
+async function saveMessage(message) {
+  const { put } = await import('@vercel/blob');
+  return put(`${MESSAGE_PREFIX}${message.id}.json`, JSON.stringify(message, null, 2), {
+    access: 'public',
+    contentType: 'application/json; charset=utf-8',
+  });
+}
+
+async function deleteMessages(id) {
+  const { del, list } = await import('@vercel/blob');
+  if (id) {
+    await del(`${MESSAGE_PREFIX}${id}.json`);
+    return;
+  }
+
+  const result = await list({ prefix: MESSAGE_PREFIX, limit: 100 });
+  const pathnames = (result.blobs || []).map((blob) => blob.pathname);
+  if (pathnames.length) await del(pathnames);
+}
+
 async function sendContactEmail(message) {
   const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.CONTACT_TO_EMAIL || 'mohsinarif479@gmail.com';
@@ -132,7 +167,7 @@ module.exports = async function handler(req, res) {
   if (req.method === 'GET') {
     if (!requireAdmin(req, res)) return;
     try {
-      const messages = await readJsonBlob(DATA_PATHS.messages, []);
+      const messages = await readMessages();
       return sendJson(res, 200, { messages });
     } catch (error) {
       return sendJson(res, 500, { error: 'Messages could not be loaded from storage' });
@@ -158,13 +193,13 @@ module.exports = async function handler(req, res) {
       return sendJson(res, 500, { error: 'Attachments could not be uploaded. Please try smaller files.' });
     }
 
-    let messages = [];
     try {
-      messages = await readJsonBlob(DATA_PATHS.messages, []);
-      const next = [nextMessage, ...messages];
-      await writeJsonBlob(DATA_PATHS.messages, next, 'private');
+      await saveMessage(nextMessage);
     } catch (error) {
-      return sendJson(res, 500, { error: 'Message could not be saved to the admin inbox' });
+      return sendJson(res, 500, {
+        error: 'Message could not be saved to the admin inbox',
+        detail: error && error.message ? error.message : 'Unknown storage error',
+      });
     }
 
     const emailResult = await sendContactEmail(nextMessage).catch((error) => ({
@@ -179,10 +214,9 @@ module.exports = async function handler(req, res) {
     if (!requireAdmin(req, res)) return;
     const { id } = req.query;
     try {
-      const messages = await readJsonBlob(DATA_PATHS.messages, []);
-      const next = id ? messages.filter((message) => message.id !== id) : [];
-      await writeJsonBlob(DATA_PATHS.messages, next, 'private');
-      return sendJson(res, 200, { messages: next });
+      await deleteMessages(id);
+      const messages = await readMessages();
+      return sendJson(res, 200, { messages });
     } catch (error) {
       return sendJson(res, 500, { error: 'Messages could not be updated in storage' });
     }
