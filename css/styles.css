@@ -193,6 +193,49 @@ a {
   background: rgba(45, 212, 191, 0.1);
 }
 
+.nav-toggle {
+  display: none;
+  place-items: center;
+  gap: 0.24rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius);
+  color: var(--text);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)),
+    rgba(7, 17, 31, 0.72);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 1.15rem;
+  height: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.nav-toggle:hover,
+.nav-toggle:focus-visible {
+  border-color: rgba(45, 212, 191, 0.38);
+  background: rgba(45, 212, 191, 0.12);
+}
+
+.site-header.nav-open .nav-toggle span:nth-child(1) {
+  transform: translateY(0.38rem) rotate(45deg);
+}
+
+.site-header.nav-open .nav-toggle span:nth-child(2) {
+  opacity: 0;
+}
+
+.site-header.nav-open .nav-toggle span:nth-child(3) {
+  transform: translateY(-0.38rem) rotate(-45deg);
+}
+
 .hero {
   position: relative;
   min-height: 760px;
@@ -1243,6 +1286,7 @@ textarea {
 input:focus,
 textarea:focus,
 .button:focus-visible,
+.nav-toggle:focus-visible,
 .slider-button:focus-visible,
 .slider-dot:focus-visible {
   outline: 2px solid rgba(45, 212, 191, 0.75);
@@ -2020,23 +2064,62 @@ textarea:focus,
   }
 
   .header-inner {
-    align-items: flex-start;
-    flex-direction: column;
+    position: relative;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+  }
+
+  .brand {
+    flex: 1 1 auto;
+    max-width: calc(100% - 3.75rem);
+  }
+
+  .nav-toggle {
+    display: inline-grid;
+    flex: 0 0 auto;
   }
 
   .main-nav {
+    flex: 1 0 100%;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
     width: 100%;
-    overflow: visible;
+    max-height: 0;
+    margin-top: 0;
+    padding: 0 0.75rem;
+    overflow: hidden;
+    visibility: hidden;
+    opacity: 0;
     border-radius: 18px;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035)),
+      rgba(7, 17, 31, 0.94);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      0 22px 58px rgba(0, 0, 0, 0.28);
+    transition: max-height 0.25s ease, opacity 0.2s ease, padding 0.2s ease, visibility 0.2s ease;
   }
 
-  .main-nav a {
-    justify-content: center;
+  .site-header.nav-open .main-nav {
+    max-height: 28rem;
+    margin-top: 0.15rem;
+    padding: 0.75rem;
+    visibility: visible;
+    opacity: 1;
+  }
+
+  .main-nav a,
+  .main-nav .button {
+    justify-content: space-between;
+    width: 100%;
     min-width: 0;
-    padding-inline: 0.55rem;
-    text-align: center;
+    min-height: 2.75rem;
+    padding: 0.74rem 0.9rem;
+    border-radius: 12px;
+    text-align: left;
     white-space: nowrap;
   }
 
@@ -2100,23 +2183,6 @@ textarea:focus,
   .dashboard-header {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .header-inner {
-    gap: 0.85rem;
-  }
-
-  .brand {
-    max-width: 100%;
-  }
-
-  .main-nav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .main-nav a {
-    padding: 0.65rem 0.72rem;
-    white-space: nowrap;
   }
 
   .admin-side-nav {
@@ -2260,13 +2326,24 @@ textarea:focus,
 }
 
 @media (max-width: 420px) {
-  .main-nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .brand {
+    gap: 0.55rem;
+    font-size: 0.92rem;
   }
 
-  .main-nav a {
-    font-size: 0.85rem;
-    padding-inline: 0.62rem;
+  .brand-mark {
+    width: 2.1rem;
+    height: 2.1rem;
+  }
+
+  .nav-toggle {
+    width: 2.55rem;
+    height: 2.55rem;
+  }
+
+  .main-nav a,
+  .main-nav .button {
+    font-size: 0.9rem;
   }
 
   .admin-side-nav {
